@@ -1,0 +1,82 @@
+package com.example.service;
+
+import com.example.entity.WishlistItem;
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.repository.WishlistRepository;
+import com.example.security.JwtUtil;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+ // assuming this is your JWT utility
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistRepository wishlistRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    // 🔐 Helper method to get user from token
+    public User getUserFromToken(String token) {
+        String username = jwtUtil.extractUsername(token);
+        return userRepo.findByUsername(username);
+    }
+
+    // ➕ Add to Wishlist
+    public WishlistItem addToWishlist(String token, Long productId) {
+        User user = getUserFromToken(token);
+        Product product = productRepo.findById(productId).orElse(null);
+
+        if (user == null || product == null) {
+            return null;
+        }
+
+        WishlistItem existing = wishlistRepo.findByUserAndProduct(user, product);
+        if (existing != null) {
+            return existing; // Item already exists
+        }
+
+        WishlistItem item = new WishlistItem();
+        item.setUser(user);
+        item.setProduct(product);
+        return wishlistRepo.save(item);
+    }
+
+    // 📄 Get Wishlist for a User
+    public List<WishlistItem> getWishlist(String token) {
+        User user = getUserFromToken(token);
+        if (user == null) {
+            throw new RuntimeException("Invalid user");
+        }
+        return wishlistRepo.findByUser(user);
+    }
+
+    // ❌ Remove from Wishlist
+    public void removeFromWishlist(String token, Long productId) {
+        User user = getUserFromToken(token);
+        Product product = productRepo.findById(productId).orElse(null);
+
+        if (user == null || product == null) {
+            throw new RuntimeException("Invalid user or product");
+        }
+
+        WishlistItem item = wishlistRepo.findByUserAndProduct(user, product);
+        if (item != null) {
+            wishlistRepo.delete(item);
+        } else {
+            throw new RuntimeException("Item not found in wishlist");
+        }
+    }
+}

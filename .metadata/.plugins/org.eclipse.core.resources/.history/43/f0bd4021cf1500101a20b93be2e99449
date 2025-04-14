@@ -1,0 +1,44 @@
+package com.example.controller;
+
+import com.example.entity.Order;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    // Request cancellation of an order
+    @PostMapping("/cancel/request/{orderId}")
+    public ResponseEntity<String> requestCancellation(@PathVariable Long orderId) {
+        return orderService.requestCancellation(orderId);
+    }
+
+    // Admin approves cancellation of an order
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/approve/{orderId}")
+    public ResponseEntity<String> approveCancellation(@PathVariable Long orderId) {
+        return orderService.approveCancellation(orderId);
+    }
+
+    // Get all orders of a specific user
+    @GetMapping("/user/{userId}")
+    public List<Order> getOrdersByUserId(@PathVariable Long userId) {
+        return orderService.getOrdersByUserId(userId);
+    }
+
+    // Admin: Get all orders
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+}

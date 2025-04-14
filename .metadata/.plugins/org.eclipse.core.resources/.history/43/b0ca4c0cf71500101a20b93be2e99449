@@ -1,0 +1,103 @@
+package com.example.service;
+
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.Order;
+import com.example.repository.OrderRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Override
+    public ResponseEntity<String> requestCancellation(Long orderId, RequestWithRemarksDTO request, String username) {
+        Optional<Order> orderOpt = orderRepository.findByIdWithUser(orderId);
+
+        if (!orderOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Order not found.");
+        }
+
+        Order order = orderOpt.get();
+
+        if (order.getUser() == null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Order has no associated user.");
+        }
+
+        if (!order.getUser().getUsername().equals(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only cancel your own orders.");
+        }
+
+        order.setStatus("Cancellation Requested");
+        order.setRemarks(request.getRemarks());
+        orderRepository.save(order);
+
+        // Optional: handle image saving
+        if (request.getImages() != null) {
+            // TODO: handle image saving
+        }
+
+        return ResponseEntity.ok("Cancellation request successful.");
+    }
+
+    @Override
+    public ResponseEntity<String> approveCancellation(Long orderId) {
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+        if (!orderOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Order not found.");
+        }
+
+        Order order = orderOpt.get();
+        order.setStatus("Cancelled");
+        orderRepository.save(order);
+
+        return ResponseEntity.ok("Cancellation approved.");
+    }
+
+    @Override
+    public ResponseEntity<String> requestReturn(Long orderId, RequestWithRemarksDTO request, String username) {
+        Optional<Order> orderOpt = orderRepository.findByIdWithUser(orderId);
+
+        if (!orderOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Order not found.");
+        }
+
+        Order order = orderOpt.get();
+
+        if (order.getUser() == null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Order has no associated user.");
+        }
+
+        if (!order.getUser().getUsername().equals(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only return your own orders.");
+        }
+
+        order.setStatus("Return Requested");
+        order.setRemarks(request.getRemarks());
+        orderRepository.save(order);
+
+        // Optional: handle image saving
+        if (request.getImages() != null) {
+            // TODO: handle image saving
+        }
+
+        return ResponseEntity.ok("Return request successful.");
+    }
+
+    @Override
+    public List<Order> getOrdersByUser(String username) {
+        return orderRepository.findByUserUsername(username);
+    }
+
+    @Override
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
+}

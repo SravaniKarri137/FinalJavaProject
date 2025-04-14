@@ -1,0 +1,61 @@
+package com.example.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.dto.CartRequest;
+import com.example.entity.CartItem;
+import com.example.service.CartService;
+
+@RestController
+@RequestMapping("/api/cart")
+@CrossOrigin(origins = "*")
+public class CartController {
+
+    @Autowired
+    private CartService cartService;
+
+    @PostMapping("/add")
+    public ResponseEntity<CartItem> addToCart(@RequestBody CartRequest request) {
+        CartItem item = cartService.addToCart(request.getUsername(), request.getProductId(), request.getQuantity());
+        if (item == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        return ResponseEntity.ok(item);
+    }
+
+    @GetMapping("/{username}")
+    public List<CartItem> getCartItems(@PathVariable String username) {
+        return cartService.getCartItems(username);
+    }
+
+    @PutMapping("/update")
+    @Transactional
+    public ResponseEntity<List<CartItem>> updateCartItem(@RequestBody CartRequest request) {
+        cartService.updateCartItemQuantity(request.getUsername(), request.getProductId(), request.getQuantity());
+        return ResponseEntity.ok(cartService.getCartItems(request.getUsername()));
+    }
+
+    @DeleteMapping("/remove")
+    @Transactional
+    public ResponseEntity<String> removeItem(@RequestBody CartRequest request) {
+        cartService.removeItem(request.getUsername(), request.getProductId());
+        return ResponseEntity.ok("Item removed from cart");
+    }
+
+    @DeleteMapping("/clear")
+    @Transactional
+    public ResponseEntity<String> clearCart(@RequestBody CartRequest request) {
+        cartService.clearCart(request.getUsername());
+        return ResponseEntity.ok("Cart cleared successfully");
+    }
+
+    @PostMapping("/count")
+    public ResponseEntity<Integer> getCartCount(@RequestBody CartRequest request) {
+        return ResponseEntity.ok(cartService.countItems(request.getUsername()));
+    }
+}

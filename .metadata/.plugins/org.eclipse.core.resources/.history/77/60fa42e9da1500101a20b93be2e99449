@@ -1,0 +1,84 @@
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.dto.ApiResponse;
+import com.example.service.CouponService;
+
+@RestController
+@RequestMapping("/api/coupons")
+public class CouponController {
+
+    @Autowired
+    private CouponService couponService;
+
+    // Get a coupon by code
+    @GetMapping("/{couponCode}")
+    public ResponseEntity<?> getCouponByCode(@PathVariable String couponCode) {
+        var coupon = couponService.getCouponByCode(couponCode);
+        if (coupon == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(new ApiResponse("Coupon not found", false));
+        }
+        return ResponseEntity.ok(coupon);
+    }
+
+    // Validate and apply the coupon
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateCoupon(@RequestParam String couponCode, @RequestParam double totalAmount) {
+        boolean isValid = couponService.isCouponValid(couponCode, totalAmount);
+        if (!isValid) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                 .body(new ApiResponse("Invalid or expired coupon", false));
+        }
+        double discount = couponService.applyCouponDiscount(couponCode, totalAmount);
+        couponService.updateCouponUsage(couponCode);
+        return ResponseEntity.ok(new ApiResponse("Coupon applied successfully", true, discount));
+    }
+
+    // Class to standardize the response format
+    public static class ApiResponse {
+        private String message;
+        private boolean success;
+        private double discount;
+
+        public ApiResponse(String message, boolean success) {
+            this.message = message;
+            this.success = success;
+        }
+
+        public ApiResponse(String message, boolean success, double discount) {
+            this.message = message;
+            this.success = success;
+            this.discount = discount;
+        }
+
+        // Getters and setters
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public void setSuccess(boolean success) {
+            this.success = success;
+        }
+
+        public double getDiscount() {
+            return discount;
+        }
+
+        public void setDiscount(double discount) {
+            this.discount = discount;
+        }
+    }
+}

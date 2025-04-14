@@ -1,0 +1,9 @@
+package com.example.dto;
+public class CancellationRequestDTO {
+    private Long itemId;
+    private Long userId;
+    private String reason;
+    private String status;
+    private LocalDateTime requestedAt;
+    // getters and setters
+}

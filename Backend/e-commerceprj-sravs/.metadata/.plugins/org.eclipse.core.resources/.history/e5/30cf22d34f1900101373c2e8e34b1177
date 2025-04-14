@@ -1,0 +1,55 @@
+package com.example.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.entity.WishlistItem;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+import com.example.repository.WishlistRepository;
+import com.example.security.JwtUtil;
+
+import java.util.List;
+
+@Service
+public class WishlistService {
+
+    @Autowired private WishlistRepository wishlistRepo;
+    @Autowired private ProductRepository productRepo;
+    @Autowired private UserRepository userRepo;
+    @Autowired private JwtUtil jwtUtil;
+
+    public User getUserFromToken(String token) {
+        String username = jwtUtil.extractUsername(token);
+        return userRepo.findByUsername(username);
+    }
+
+    public WishlistItem addToWishlist(String token, Long productId) {
+        User user = getUserFromToken(token);
+        if (user == null) return null;
+
+        Product product = productRepo.findById(productId).orElse(null);
+        if (product == null) return null;
+
+        WishlistItem item = new WishlistItem();
+        item.setUser(user); // assuming WishlistItem has a User field
+        item.setProduct(product);
+        return wishlistRepo.save(item);
+    }
+
+    public List<WishlistItem> getWishlist(String token) {
+        User user = getUserFromToken(token);
+        if (user == null) return null;
+
+        return wishlistRepo.findByUser(user); // assuming a method that queries by User
+    }
+
+    public void removeFromWishlist(String token, Long productId) {
+        User user = getUserFromToken(token);
+        if (user != null) {
+            wishlistRepo.deleteByUsernameAndProductId(user, productId); // assuming this method exists
+        }
+    }
+}

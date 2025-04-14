@@ -1,0 +1,36 @@
+package com.example.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderItem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Long productId;
+    private String productName;
+    private int quantity;
+    private double price;
+
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private Order order;
+
+    private boolean cancellationRequested = false;
+    private String cancellationReason;
+
+    private boolean isRefunded = false;
+
+    @ElementCollection
+    private List<String> imageUrls = new ArrayList<>();
+
+    private String status = "ACTIVE"; // PENDING, APPROVED, REJECTED
+}

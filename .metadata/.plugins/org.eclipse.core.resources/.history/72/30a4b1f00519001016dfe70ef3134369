@@ -1,0 +1,75 @@
+package com.example.service;
+
+import com.example.entity.WishlistItem;
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.repository.WishlistRepository;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistRepository wishlistRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    // Add item to the wishlist
+    public WishlistItem addToWishlist(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+
+        if (user == null || product == null) {
+            return null;
+        }
+
+        WishlistItem existing = wishlistRepo.findByUserAndProduct(user, product);
+        if (existing != null) {
+            return existing;
+        }
+
+        WishlistItem item = new WishlistItem(null, user, product);
+        return wishlistRepo.save(item);
+    }
+
+    // Get wishlist items for a user
+    public List<WishlistItem> getWishlistItems(String username) {
+        User user = userRepo.findByUsername(username);
+        if (user == null) return List.of();
+        return wishlistRepo.findByUser(user);
+    }
+
+    // Remove item from the wishlist
+    public boolean removeFromWishlist(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+
+        if (user != null && product != null) {
+            wishlistRepo.deleteByUserAndProduct(user, product);
+            return true;
+        }
+        return false;
+    }
+
+    // Clear the wishlist
+    @Transactional
+    public boolean clearWishlist(String username) {
+        User user = userRepo.findByUsername(username);
+        if (user != null) {
+            wishlistRepo.deleteByUser(user); // Custom delete query (recommended)
+            return true;
+        }
+        return false;
+    }
+}

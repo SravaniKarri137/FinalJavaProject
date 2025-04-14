@@ -1,0 +1,25 @@
+package com.example.service;
+
+public class Snippet {
+	@PostMapping("/register")
+	public ResponseEntity<?> register(@RequestBody User user) {
+	    if (user.getEmail() == null || user.getEmail().isEmpty()) {
+	        return ResponseEntity.badRequest().body("Email is required");
+	    }
+	
+	    if (userRepository.findByUsername(user.getUsername()) != null) {
+	        return ResponseEntity.badRequest().body("Username already exists");
+	    }
+	
+	    user.setPassword(passwordEncoder.encode(user.getPassword()));
+	
+	    if (user.getRoles() == null || user.getRoles().isEmpty()) {
+	        user.setRoles(Collections.singleton("ROLE_USER")); // default role
+	    }
+	
+	    User saved = userRepository.save(user);
+	    return ResponseEntity.ok(saved);
+	}
+	
+}
+

@@ -1,0 +1,58 @@
+package com.example.entity;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "orders")
+public class Order {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private LocalDateTime orderDate;
+    private Double totalAmount;
+    private Double discountAmount;
+    private Double finalPrice;
+    private String status;
+    private String couponCode;
+
+    @Column(length = 1000) // ✅ Add this
+    private String remarks;
+
+    @ManyToOne
+    private Address shippingAddress;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+  
+    private List<OrderItem> items = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
+    @Column(nullable = false)
+    private Boolean cancellationRequested = false; // default value
+    @Column(nullable = false)
+    private Boolean isRefunded = false; // default value
+    @Column(nullable = false)
+    private String username; // Add this field
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+}

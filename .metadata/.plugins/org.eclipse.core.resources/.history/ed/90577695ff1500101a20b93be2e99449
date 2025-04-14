@@ -1,0 +1,23 @@
+package com.example.entity;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import jakarta.persistence.*;
+
+@Entity
+public class ReturnAndCancelled {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Long orderId;
+    private String type; // CANCEL or RETURN
+    private String remarks;
+
+    @ElementCollection
+    private List<String> imagePaths;
+
+    private LocalDateTime createdAt;
+}

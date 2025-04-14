@@ -1,0 +1,21 @@
+package com.example.entity;
+
+import jakarta.persistence.*;
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CartItem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String username; // ✅ Add this field
+
+    private Long productId;
+    private String productName;
+    private Integer quantity;
+    private Double price;
+    private Boolean selected = false; // Optional: Used for order selection
+}

@@ -1,0 +1,11 @@
+package com.example.repository;
+
+import com.example.entity.TransactionItem;
+import com.example.entity.Transaction;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface TransactionItemRepository extends JpaRepository<TransactionItem, Long> {
+    List<TransactionItem> findByTransaction(Transaction transaction);
+}

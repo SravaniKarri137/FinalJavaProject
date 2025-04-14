@@ -1,0 +1,38 @@
+package com.example.controller;
+
+import com.example.dto.CartRequest;
+import com.example.entity.CartItem;
+import com.example.service.WishlistService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/wishlist")
+@CrossOrigin(origins = "*")
+public class WishlistController {
+
+    @Autowired
+    private WishlistService wishlistService;
+
+    @PostMapping("/add")
+    public CartItem addToWishlist(@RequestBody CartRequest req) {
+        return wishlistService.addToWishlist(req.getUsername(), req.getProductId());
+    }
+
+    @GetMapping("/{username}")
+    public List<CartItem> getWishlistItems(@PathVariable String username) {
+        return wishlistService.getWishlistItems(username);
+    }
+
+    @DeleteMapping("/remove")
+    public void removeItem(@RequestParam String username, @RequestParam Long productId) {
+        wishlistService.removeItem(username, productId);
+    }
+
+    @DeleteMapping("/clear")
+    public void clearWishlist(@RequestParam String username) {
+        wishlistService.clearWishlist(username);
+    }
+}

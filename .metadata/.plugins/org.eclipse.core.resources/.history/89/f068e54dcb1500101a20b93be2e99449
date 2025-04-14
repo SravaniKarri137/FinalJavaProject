@@ -1,0 +1,51 @@
+package com.example.controller;
+
+import com.example.entity.Order;
+import com.example.entity.TransactionDetail;
+import com.example.service.OrderService;
+import com.example.service.TransactionService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private TransactionService transactionService;
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+
+    @GetMapping("/user/{username}")
+    public List<Order> getOrdersByUser(@PathVariable String username) {
+        return orderService.getOrdersByUsername(username);
+    }
+
+    @PostMapping("/cancel-request/{orderId}")
+    public ResponseEntity<String> requestCancel(@PathVariable Long orderId) {
+        return orderService.requestCancellation(orderId);
+    }
+
+    @PostMapping("/approve-cancel/{orderId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> approveCancel(@PathVariable Long orderId) {
+        return orderService.approveCancellation(orderId);
+    }
+
+    @GetMapping("/transactions/order/{orderId}")
+    public List<TransactionDetail> getTransactions(@PathVariable Long orderId) {
+        return transactionService.getTransactionsByOrder(orderId);
+    }
+}

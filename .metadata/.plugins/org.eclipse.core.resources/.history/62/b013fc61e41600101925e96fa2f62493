@@ -1,0 +1,73 @@
+package com.example.controller;
+
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.User;
+import com.example.repository.UserRepository;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("api/orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+    @Autowired
+    private UserRepository userRepository;
+    
+
+    @PostMapping("/cancel/item/{itemId}")
+    public ResponseEntity<String> requestItemCancellation(@PathVariable Long itemId,
+                                                          @ModelAttribute RequestWithRemarksDTO request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.requestCancellation(itemId, request, username);
+    }
+ // Get all orders for the logged-in user
+    @GetMapping("/my-orders")
+    public ResponseEntity<?> getAllOrdersForUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Fetch user from repository
+        User user = userRepository.findByUsername(username);
+               
+
+        Long userId = user.getId(); // assuming user has a getId() method
+
+        // Now pass userId to service
+        return orderService.getOrdersForUser(userId);
+    }
+    // Get all cancelled orders for the logged-in user
+    @GetMapping("/my-cancelled-orders")
+    public ResponseEntity<?> getCancelledOrdersForUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.getCancelledOrdersForUser(username);
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    
+    @PutMapping("/admin/order/{orderId}/ship")
+    public ResponseEntity<?> shipOrder(@PathVariable Long orderId) {
+        boolean success = orderService.markOrderAsShipped(orderId);
+        return success ? ResponseEntity.ok("Order marked as shipped") :
+                         ResponseEntity.badRequest().body("Cannot update order");
+    }
+
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/approve/{recordId}")
+    public ResponseEntity<String> approveCancellation(@PathVariable Long recordId) {
+        String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.approveCancellation(recordId, adminName);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/reject/{recordId}")
+    public ResponseEntity<String> rejectCancellation(@PathVariable Long recordId) {
+        String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.rejectCancellation(recordId, adminName);
+    }
+}

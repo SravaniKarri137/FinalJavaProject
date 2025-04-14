@@ -1,0 +1,101 @@
+package com.example.security;
+
+import com.example.entity.User;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.*;
+import org.springframework.security.authentication.*;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.*;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.*;
+import org.springframework.security.crypto.bcrypt.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.*;
+
+import java.util.List;
+
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter();
+    }
+
+    @Bean
+    public AuthenticationManager authManager(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
+        return http.getSharedObject(AuthenticationManagerBuilder.class)
+            .userDetailsService(userDetailsService)
+            .passwordEncoder(passwordEncoder())
+            .and()
+            .build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(UserService userService) {
+        return username -> {
+            User user = userService.findByUsername(username);
+            if (user == null) {
+                throw new UsernameNotFoundException("User not found");
+            }
+            return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
+            );
+        };
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .cors() // ✅ Enable CORS
+            .and()
+            .csrf().disable()
+            .authorizeRequests()
+            .requestMatchers("/api/auth/**").permitAll() 
+            .requestMatchers("/api/cart/checkout").authenticated()// Auth routes
+            .requestMatchers("/api/products/add", "/api/orders/admin/**","/api/products/delete/**","/api/coupons","/api/coupons/update/**","/api/coupons/add","/api/transactions/all","api/orders/cancel/approve/**","api/orders/cancel/reject/**").hasRole("ADMIN") // Admin routes
+            .requestMatchers("/api/products/**").permitAll() // Public access
+            .requestMatchers("/api/cart/**").authenticated() 
+            .requestMatchers("/api/orders/**").authenticated() 
+            .requestMatchers("/api/review/**").authenticated() 
+            .requestMatchers("/api/orders/cancel/item/**").authenticated()
+
+            .requestMatchers("/api/wishlist/**").authenticated() 
+
+            
+            .anyRequest().authenticated()
+            .and()
+            
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization")); // ✅ Add this
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}

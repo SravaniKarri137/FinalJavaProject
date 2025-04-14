@@ -1,0 +1,84 @@
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+const CancelOrder = () => {
+  const { itemId } = useParams();
+  const navigate = useNavigate();
+
+  const [remarks, setRemarks] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (!itemId || isNaN(itemId)) {
+      setError('Invalid or missing item ID.');
+    }
+  }, [itemId]);
+
+  const handleCancel = async (e) => {
+    e.preventDefault();
+    if (!itemId || isNaN(itemId)) return;
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const formData = new FormData();
+      formData.append('remarks', remarks);
+
+      const response = await axios.post(`/api/orders/cancel/item/${itemId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setSuccess(response.data || 'Cancellation submitted.');
+      setTimeout(() => navigate('/orders'), 2000); // redirect to orders after 2s
+    } catch (err) {
+      const msg = err.response?.data || 'Cancellation failed.';
+      setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!itemId || isNaN(itemId)) {
+    return <div className="text-red-600 text-center mt-10 text-lg font-semibold">Invalid item ID provided.</div>;
+  }
+
+  return (
+    <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-2xl border border-gray-300">
+      <h2 className="text-2xl font-bold mb-4 text-red-600">Cancel Order Item</h2>
+      <form onSubmit={handleCancel}>
+        <label className="block text-gray-700 mb-2 font-medium">
+          Reason for cancellation:
+        </label>
+        <textarea
+          className="w-full border border-gray-300 rounded-lg p-3 mb-4"
+          rows={5}
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+          placeholder="Enter remarks..."
+          required
+        />
+
+        <button
+          type="submit"
+          className={`${
+            loading ? 'bg-red-400' : 'bg-red-600 hover:bg-red-700'
+          } text-white px-4 py-2 rounded-lg w-full transition`}
+          disabled={loading}
+        >
+          {loading ? 'Submitting...' : 'Submit Cancellation'}
+        </button>
+
+        {error && <p className="mt-4 text-red-500">{error}</p>}
+        {success && <p className="mt-4 text-green-600">{success}</p>}
+      </form>
+    </div>
+  );
+};
+
+export default CancelOrder;

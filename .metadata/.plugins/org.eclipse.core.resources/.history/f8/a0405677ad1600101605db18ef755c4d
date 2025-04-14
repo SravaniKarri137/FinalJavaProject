@@ -1,0 +1,17 @@
+package com.example.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.entity.Order;
+import com.example.entity.OrderItem;
+
+public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
+    Optional<OrderItem> findById(Long id);
+
+	List<Order> findAllByUsername(String username);
+
+	List<Order> findAllByUsernameAndStatus(String username, String string);
+}

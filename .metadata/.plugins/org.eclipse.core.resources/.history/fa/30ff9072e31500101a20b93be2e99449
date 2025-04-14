@@ -1,0 +1,176 @@
+package com.example.service;
+
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.Order;
+import com.example.entity.TransactionDetail;
+import com.example.entity.User;
+import com.example.repository.OrderRepository;
+import com.example.repository.TransactionRepository;
+import com.example.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // Directory to store images locally (you can replace this with an S3 bucket or similar solution)
+    private static final String UPLOAD_DIR = "uploads/";
+
+    @Override
+    public ResponseEntity<String> placeOrder(Long userId, Order order) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.badRequest().body("User not found.");
+        }
+
+        order.setUser(optionalUser.get());
+        order.setStatus("PLACED");
+        orderRepository.save(order);
+
+        return ResponseEntity.ok("Order placed successfully.");
+    }
+
+    @Override
+    public ResponseEntity<String> requestCancellation(Long orderId, RequestWithRemarksDTO request) {
+        Optional<Order> optionalOrder = orderRepository.findById(orderId);
+        if (optionalOrder.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Order order = optionalOrder.get();
+        if (!"PLACED".equalsIgnoreCase(order.getStatus())) {
+            return ResponseEntity.badRequest().body("Order cannot be cancelled at this stage.");
+        }
+
+        // Save the cancellation request along with remarks and images
+        order.setStatus("CANCEL_REQUESTED");
+
+        // Store remarks in the order (or create a new cancellation entity)
+        String remarks = request.getRemarks();
+        if (remarks != null && !remarks.trim().isEmpty()) {
+            // Set the remarks in the order or a dedicated entity
+            order.setRemarks(remarks);
+        }
+
+        // Save images (if any)
+        if (request.getImages() != null && request.getImages().length > 0) {
+            for (MultipartFile file : request.getImages()) {
+                String filePath = saveFile(file);  // Save the file locally
+                System.out.println("Image saved at: " + filePath);  // Optional: Log the saved file path
+            }
+        }
+
+        orderRepository.save(order);  // Save the updated order status
+
+        return ResponseEntity.ok("Cancellation requested successfully.");
+    }
+
+    @Override
+    public ResponseEntity<String> approveCancellation(Long orderId) {
+        Optional<Order> optionalOrder = orderRepository.findById(orderId);
+        if (optionalOrder.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Order order = optionalOrder.get();
+        if (!"CANCEL_REQUESTED".equalsIgnoreCase(order.getStatus())) {
+            return ResponseEntity.badRequest().body("Cancellation not requested.");
+        }
+
+        order.setStatus("CANCELLED");
+        orderRepository.save(order);
+
+        // Refund logic (transaction)
+        TransactionDetail refund = new TransactionDetail();
+        refund.setTransactionDate(LocalDateTime.now());
+        refund.setTransactionType("REFUND");
+        refund.setStatus("REFUNDED");
+        refund.setOrder(order);
+        refund.setUser(order.getUser());
+
+        transactionRepository.save(refund);
+
+        return ResponseEntity.ok("Order cancelled and refund processed.");
+    }
+
+    @Override
+    public ResponseEntity<String> requestReturn(Long orderId, RequestWithRemarksDTO request) {
+        Optional<Order> optionalOrder = orderRepository.findById(orderId);
+        if (optionalOrder.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Order order = optionalOrder.get();
+        if (!"DELIVERED".equalsIgnoreCase(order.getStatus())) {
+            return ResponseEntity.badRequest().body("Order is not eligible for return.");
+        }
+
+        // Save the return request along with remarks and images
+        order.setStatus("RETURN_REQUESTED");
+
+        String remarks = request.getRemarks();
+        if (remarks != null && !remarks.trim().isEmpty()) {
+            order.setRemarks(remarks);
+        }
+
+        if (request.getImages() != null && request.getImages().length > 0) {
+            for (MultipartFile file : request.getImages()) {
+                String filePath = saveFile(file);  // Save the file locally
+                System.out.println("Image saved at: " + filePath);
+            }
+        }
+
+        orderRepository.save(order);
+        return ResponseEntity.ok("Return requested successfully.");
+    }
+
+    @Override
+    public List<Order> getOrdersByUserId(Long userId) {
+        return orderRepository.findByUserId(userId);
+    }
+
+    @Override
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
+
+    // Helper function to save image files locally
+    private String saveFile(MultipartFile file) {
+        try {
+            // Ensure the upload directory exists
+            File dir = new File(UPLOAD_DIR);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            // Save the file with a unique name
+            Path path = Paths.get(UPLOAD_DIR + file.getOriginalFilename());
+            Files.write(path, file.getBytes());
+
+            return path.toString(); // Return file path
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}

@@ -1,0 +1,57 @@
+package com.example.controller;
+
+import com.example.entity.WishlistItem;
+import com.example.entity.User;
+import com.example.entity.Product;
+import com.example.repository.WishlistItemRepository;
+import com.example.repository.UserRepository;
+import com.example.repository.ProductRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistItemRepository wishlistItemRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    // Add product to wishlist
+    public WishlistItem addProductToWishlist(String username, Long productId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        WishlistItem wishlistItem = new WishlistItem();
+        wishlistItem.setUser(user);
+        wishlistItem.setProduct(product);
+
+        return wishlistItemRepository.save(wishlistItem);
+    }
+
+    // Remove product from wishlist
+    public String removeProductFromWishlist(String username, Long productId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        WishlistItem wishlistItem = wishlistItemRepository.findByUserAndProduct(user, productId)
+                .orElseThrow(() -> new RuntimeException("Wishlist item not found"));
+
+        wishlistItemRepository.delete(wishlistItem);
+        return "Product removed from wishlist";
+    }
+
+    // Get wishlist by username
+    public List<WishlistItem> getWishlistByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return wishlistItemRepository.findByUser(user);
+    }
+}

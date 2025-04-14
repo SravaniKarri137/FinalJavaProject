@@ -1,0 +1,200 @@
+package com.example.service;
+
+import com.example.dto.OrderResponseDTO;
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.Order;
+import com.example.entity.OrderItem;
+import com.example.entity.ReturnAndCancelled;
+import com.example.entity.User;
+import com.example.repository.OrderItemRepository;
+import com.example.repository.OrderRepository;
+import com.example.repository.ReturnAndCancelledRepository;
+import com.example.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class OrderService {
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private OrderRepository orderRepo;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ReturnAndCancelledRepository returnAndCancelledRepository;
+
+    public ResponseEntity<String> requestCancellation(Long itemId, RequestWithRemarksDTO request, String username) {
+        Optional<OrderItem> itemOpt = orderItemRepository.findById(itemId);
+        if (itemOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Order item not found.");
+        }
+
+        OrderItem item = itemOpt.get();
+        Order order = item.getOrder(); // Assuming there is a getOrder() method in OrderItem
+
+        if (order == null || !"RECEIVED".equalsIgnoreCase(order.getStatus())) {
+            return ResponseEntity.badRequest().body("Cancellation can only be requested for orders with status RECEIVED.");
+        }
+
+        if (item.isCancellationRequested()) {
+            return ResponseEntity.badRequest().body("Cancellation already requested.");
+        }
+
+        item.setCancellationRequested(true);
+        item.setCancellationReason(request.getRemarks());
+        item.setStatus("PENDING");
+        orderItemRepository.save(item);
+
+        ReturnAndCancelled record = new ReturnAndCancelled();
+        record.setOrderItemId(item.getId());
+        record.setType("CANCEL");
+        record.setRemarks(request.getRemarks());
+        record.setCreatedAt(LocalDateTime.now());
+        record.setApproved(false);
+        record.setRejected(false);
+        returnAndCancelledRepository.save(record);
+
+        return ResponseEntity.ok("Cancellation request submitted for approval.");
+    }
+
+
+    // Approve cancellation request
+    public ResponseEntity<String> approveCancellation(Long recordId, String adminName) {
+        Optional<ReturnAndCancelled> recOpt = returnAndCancelledRepository.findById(recordId);
+        if (recOpt.isEmpty()) return ResponseEntity.badRequest().body("Record not found");
+
+        ReturnAndCancelled record = recOpt.get();
+        if (record.isApproved()) return ResponseEntity.badRequest().body("Already approved");
+        if (record.isRejected()) return ResponseEntity.badRequest().body("Already rejected");
+
+        record.setApproved(true);
+        record.setDecisionBy(adminName);
+        record.setDecisionDate(LocalDateTime.now());
+        returnAndCancelledRepository.save(record);
+
+        OrderItem item = orderItemRepository.findById(record.getOrderItemId()).orElse(null);
+        if (item != null) {
+            item.setRefunded(true);
+            item.setStatus("APPROVED");
+            orderItemRepository.save(item);
+        }
+
+        return ResponseEntity.ok("Cancellation approved.");
+    }
+
+    
+    // Reject cancellation request
+    public ResponseEntity<String> rejectCancellation(Long recordId, String adminName) {
+        Optional<ReturnAndCancelled> recOpt = returnAndCancelledRepository.findById(recordId);
+        if (recOpt.isEmpty()) return ResponseEntity.badRequest().body("Record not found");
+
+        ReturnAndCancelled record = recOpt.get();
+        if (record.isApproved()) return ResponseEntity.badRequest().body("Already approved");
+        if (record.isRejected()) return ResponseEntity.badRequest().body("Already rejected");
+
+        record.setRejected(true);
+        record.setDecisionBy(adminName);
+        record.setDecisionDate(LocalDateTime.now());
+        returnAndCancelledRepository.save(record);
+
+        OrderItem item = orderItemRepository.findById(record.getOrderItemId()).orElse(null);
+        if (item != null) {
+            item.setStatus("REJECTED");
+            item.setCancellationRequested(false);
+            item.setCancellationReason(null);
+            orderItemRepository.save(item);
+        }
+
+        return ResponseEntity.ok("Cancellation rejected.");
+    }
+
+    public ResponseEntity<?> getOrdersForUser(Long userId) {
+        List<Order> orders = orderRepo.findByUserId(userId);
+
+        List<OrderResponseDTO> dtos = orders.stream().map(order -> {
+            OrderResponseDTO dto = new OrderResponseDTO();
+            dto.setId(order.getId());
+            dto.setOrderDate(order.getOrderDate());
+            dto.setTotalAmount(order.getTotalAmount());
+            dto.setDiscountAmount(order.getDiscountAmount());
+            dto.setFinalPrice(order.getFinalPrice());
+            dto.setStatus(order.getStatus());
+            dto.setCouponCode(order.getCouponCode());
+            dto.setRemarks(order.getRemarks());
+            dto.setAddress(order.getShippingAddress() != null ? order.getShippingAddress().getFullAddress() : null);
+
+            List<OrderResponseDTO.OrderItemDTO> itemDTOs = order.getItems().stream().map(item -> {
+                OrderResponseDTO.OrderItemDTO itemDTO = new OrderResponseDTO.OrderItemDTO();
+                itemDTO.setId(item.getId());
+                itemDTO.setProductName(item.getProductName());
+                itemDTO.setQuantity(item.getQuantity());
+                itemDTO.setPrice(item.getPrice());
+                return itemDTO;
+            }).toList();
+
+            dto.setItems(itemDTOs);
+            return dto;
+        }).toList();
+
+        return ResponseEntity.ok(dtos);
+    }
+    public ResponseEntity<?> getReceivedOrdersForUser(Long userId) {
+        List<Order> receivedOrders = orderRepo.findByUserIdAndStatusIgnoreCase(userId, "RECEIVED");
+
+        if (receivedOrders.isEmpty()) {
+            return ResponseEntity.ok("No received orders found.");
+        }
+
+        return ResponseEntity.ok(receivedOrders);
+    }
+
+
+    public boolean markOrderAsShipped(Long orderId) {
+        Optional<Order> optionalOrder = orderRepo.findById(orderId);
+        if (optionalOrder.isPresent()) {
+            Order order = optionalOrder.get();
+            if ("PLACED".equals(order.getStatus())) {
+                order.setStatus("SHIPPED");
+                orderRepo.save(order);
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
+    // ✅ Get all cancelled orders for the logged-in user
+    public ResponseEntity<?> getCancelledOrdersForUser(String username) {
+        User user = userRepository.findByUsername(username);
+              
+
+        Long userId = user.getId();
+        List<Order> cancelledOrders = orderRepo.findAllByUserIdAndStatus(userId, "CANCELLED"); // ✔ Filtered by userId and status
+
+        return ResponseEntity.ok(cancelledOrders);
+    }
+
+	public boolean markOrderAsReceived(Long orderId, String username) {
+		  Optional<Order> optionalOrder = orderRepo.findById(orderId);
+	        if (optionalOrder.isPresent()) {
+	            Order order = optionalOrder.get();
+	            if ("SHIPPED".equals(order.getStatus())) {
+	                order.setStatus("Received");
+	                orderRepo.save(order);
+	                return true;
+	            }
+	        }
+	        return false;
+	}
+}

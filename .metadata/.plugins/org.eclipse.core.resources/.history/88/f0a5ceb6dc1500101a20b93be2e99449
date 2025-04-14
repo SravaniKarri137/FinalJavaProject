@@ -1,0 +1,33 @@
+package com.example.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Coupon {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String code;
+    private double discountPercentage;
+    private boolean active;
+
+    private Double minPurchaseAmount;
+
+    @Column(nullable = true)
+    private LocalDateTime expiryDate; // Optional
+
+    private Integer usageLimit; // Maximum number of times the coupon can be used per user
+
+    @ElementCollection
+    @MapKeyColumn(name = "user_id")
+    @Column(name = "usage_count")
+    private Map<Long, Integer> userUsageMap = new HashMap<>(); // Map to track user usage counts
+}

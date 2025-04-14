@@ -1,0 +1,10 @@
+package com.example.dto;
+
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@Primary
+public interface WishlistRepository extends CartRepository {
+    // Inherits everything from CartRepository with isWishlist = true filtering in service
+}

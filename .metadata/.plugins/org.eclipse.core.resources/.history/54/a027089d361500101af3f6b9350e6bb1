@@ -1,0 +1,71 @@
+package com.example.service;
+
+import com.example.dto.TransactionRequest;
+import com.example.dto.TransactionItemRequest;
+import com.example.entity.*;
+import com.example.enums.TransactionStatus;
+import com.example.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Service
+public class TransactionService {
+
+    @Autowired
+    private TransactionRepository transactionRepo;
+
+    @Autowired
+    private TransactionItemRepository itemRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    public Transaction placeOrder(TransactionRequest request) {
+        User user = userRepo.findByUsername(request.getUsername());
+        if (user == null) throw new RuntimeException("User not found");
+
+        Transaction transaction = new Transaction();
+        transaction.setUser(user);
+        transaction.setTransactionDate(LocalDateTime.now());
+        transaction.setTransactionType(request.getTransactionType());
+        transaction.setStatus(TransactionStatus.PENDING);
+
+        transaction = transactionRepo.save(transaction); // to get ID
+
+        List<TransactionItem> items = new ArrayList<>();
+        double totalAmount = 0;
+
+        for (TransactionItemRequest itemReq : request.getItems()) {
+            Product product = productRepo.findById(itemReq.getProductId()).orElse(null);
+            if (product == null || itemReq.getQuantity() <= 0) continue;
+
+            TransactionItem item = new TransactionItem();
+            item.setProduct(product);
+            item.setQuantity(itemReq.getQuantity());
+            item.setPrice(product.getPrice());
+            item.setTransaction(transaction);
+
+            totalAmount += product.getPrice() * itemReq.getQuantity();
+            items.add(item);
+        }
+
+        itemRepo.saveAll(items);
+
+        transaction.setItems(items);
+        transaction.setTotalAmount(totalAmount);
+        transaction.setStatus(TransactionStatus.COMPLETED); // Or logic to change later
+
+        return transactionRepo.save(transaction);
+    }
+
+    public List<Transaction> getTransactionsByUser(String username) {
+        User user = userRepo.findByUsername(username);
+        return transactionRepo.findByUser(user);
+    }
+}

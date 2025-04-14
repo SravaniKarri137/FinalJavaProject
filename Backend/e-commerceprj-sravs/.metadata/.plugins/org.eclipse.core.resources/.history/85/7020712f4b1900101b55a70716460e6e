@@ -1,0 +1,67 @@
+package com.example.service;
+
+import com.example.entity.WishlistItem;
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.repository.WishlistRepository;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistRepository wishlistRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    // ➕ Add to Wishlist
+    public WishlistItem addToWishlist(String token, Long productId) {
+        User user = userRepo.findByToken(token);
+        Product product = productRepo.findById(productId).orElse(null);
+        
+        if (user == null || product == null) {
+            throw new RuntimeException("Invalid user or product");
+        }
+
+        // Create a new WishlistItem and save it
+        WishlistItem item = new WishlistItem();
+        item.setUsername(user);
+        item.setProduct(product);
+        return wishlistRepo.save(item);
+    }
+
+    // 📄 Get Wishlist for a User
+    public List<WishlistItem> getWishlist(String token) {
+        User user = userRepo.findByToken(token);
+        if (user == null) {
+            throw new RuntimeException("Invalid user");
+        }
+        return wishlistRepo.findByUser(user);
+    }
+
+    // ❌ Remove from Wishlist
+    public void removeFromWishlist(String token, Long productId) {
+        User user = userRepo.findByToken(token);
+        Product product = productRepo.findById(productId).orElse(null);
+
+        if (user == null || product == null) {
+            throw new RuntimeException("Invalid user or product");
+        }
+
+        WishlistItem item = wishlistRepo.findByUserAndProduct(user, product);
+        if (item != null) {
+            wishlistRepo.delete(item);
+        } else {
+            throw new RuntimeException("Item not found in wishlist");
+        }
+    }
+}

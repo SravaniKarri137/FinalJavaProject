@@ -1,0 +1,16 @@
+package com.example.repository;
+
+import com.example.entity.WishlistItem;
+import com.example.entity.User;
+import com.example.entity.Product;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface WishlistRepository extends JpaRepository<WishlistItem, Long> {
+    List<WishlistItem> findByUser(User user);
+
+    // Fix: Use the actual Product entity in the query, not just the product ID (Long)
+    Optional<WishlistItem> findByUserAndProduct(User user, Product product);
+}

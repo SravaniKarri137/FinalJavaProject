@@ -1,0 +1,20 @@
+public class OrderRequest {
+    private String username;
+    private List<Long> selectedProductIds;
+    private String couponCode;
+
+    // Address information
+    private String address;
+
+    // New method to include userId
+    private Long userId;
+
+    // Getters and Setters
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+}

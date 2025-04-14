@@ -1,0 +1,21 @@
+package com.example.dto;
+
+import java.util.List;
+
+public class SelectedItemResponse {
+    private String message;
+    private List<Long> updatedItemIds;
+
+    public SelectedItemResponse(String message, List<Long> updatedItemIds) {
+        this.message = message;
+        this.updatedItemIds = updatedItemIds;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public List<Long> getUpdatedItemIds() {
+        return updatedItemIds;
+    }
+}

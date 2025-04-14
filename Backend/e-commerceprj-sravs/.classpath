@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="E-CommerceSportswearBackend/src/main/java"/>
+	<classpathentry kind="src" path="E-CommerceSportswearBackend/src/test/java"/>
+	<classpathentry kind="src" path="SportswearPrj/src/main/java"/>
+	<classpathentry kind="src" path="SportswearPrj/src/test/java"/>
+	<classpathentry kind="lib" path="SportswearPrj/target/SportswearPrj-0.0.1-SNAPSHOT.jar"/>
+	<classpathentry kind="output" path="E-CommerceSportswearBackend/target/classes"/>
+</classpath>

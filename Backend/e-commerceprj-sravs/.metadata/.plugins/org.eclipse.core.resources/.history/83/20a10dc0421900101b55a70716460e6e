@@ -1,0 +1,112 @@
+package com.example.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.dto.CartItemDTO;
+import com.example.dto.CartRequest;
+import com.example.dto.OrderRequest;
+import com.example.dto.OrderResponse;
+
+import com.example.entity.CartItem;
+import com.example.service.CartService;
+
+@RestController
+@RequestMapping("/api/cart")
+@CrossOrigin(origins = "*")
+public class CartController {
+
+    @Autowired
+    private CartService cartService;
+
+    private String extractToken(String authHeader) {
+        return authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+    }
+
+    @PostMapping("/add")
+    public ResponseEntity<CartItem> addToCart(@RequestHeader("Authorization") String authHeader, @RequestBody CartRequest request) {
+        String token = extractToken(authHeader);
+        CartItem item = cartService.addToCart(token, request.getProductId(), request.getQuantity());
+        return item != null ? ResponseEntity.ok(item) : ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/get")
+    public List<CartItemDTO> getCartItems(@RequestHeader("Authorization") String authHeader) {
+    	 String token = extractToken(authHeader);
+    	return cartService.getCartItems(token);
+        
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<CartItemDTO> updateCartItem(
+            @RequestHeader("Authorization") String token,
+            @RequestParam Long productId,
+            @RequestParam int quantity) {
+
+        CartItemDTO updatedItem = cartService.updateCartItem(token, productId, quantity);
+
+        if (updatedItem == null) {
+            return ResponseEntity.noContent().build(); // 204 No Content if removed or not found
+        }
+
+        return ResponseEntity.ok(updatedItem); // 200 OK with updated cart item details
+    }
+
+
+    @DeleteMapping("/remove")
+    @Transactional
+    public ResponseEntity<String> removeItem(@RequestHeader("Authorization") String authHeader, @RequestBody CartRequest request) {
+        cartService.removeItem(extractToken(authHeader), request.getProductId());
+        return ResponseEntity.ok("Item removed from cart");
+    }
+
+    @DeleteMapping("/clear")
+    @Transactional
+    public ResponseEntity<String> clearCart(@RequestHeader("Authorization") String authHeader) {
+        cartService.clearCart(extractToken(authHeader));
+        return ResponseEntity.ok("Cart cleared successfully");
+    }
+
+    @GetMapping("/count")
+    public ResponseEntity<Integer> getCartCount(@RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(cartService.countItems(extractToken(authHeader)));
+    }
+
+   
+
+   
+
+
+
+    @GetMapping("/total")
+    public ResponseEntity<Double> getTotalForSelectedItems(@RequestHeader("Authorization") String authHeader) {
+        String token = extractToken(authHeader);
+        double total = cartService.calculateTotalOfSelectedItems(token);
+
+        if (total == 0) {
+            // If the total is 0, handle it appropriately
+            return ResponseEntity.badRequest().body(null);  // or you can return a message like "No items found"
+        }
+
+        return ResponseEntity.ok(total);  // This should return the total in the response body
+    }
+
+
+
+
+
+
+    @PostMapping("/checkout")
+    @Transactional
+    public ResponseEntity<OrderResponse> checkout(@RequestHeader("Authorization") String authHeader, @RequestBody OrderRequest request) {
+        OrderResponse response = cartService.checkout(extractToken(authHeader), request);
+        return response != null ? ResponseEntity.ok(response) : ResponseEntity.badRequest().build();
+    }
+}

@@ -1,0 +1,79 @@
+package com.example.controller;
+
+import com.example.entity.Coupon;
+import com.example.service.CouponService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import com.example.security.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/coupons")
+public class CouponController {
+
+    @Autowired
+    private CouponService couponService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    // Extract username from JWT token in request header
+    private String getUsernameFromToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            return jwtUtil.extractUsername(token);
+        }
+        return null;
+    }
+
+      @GetMapping("/get")
+    public ResponseEntity<List<Coupon>> getAllCoupons() {
+        return ResponseEntity.ok(couponService.getAllCoupons());
+    }
+
+      
+    
+
+    @GetMapping("/code/{code}")
+    public ResponseEntity<Coupon> getCouponByCode(@PathVariable String code) {
+        Coupon coupon = couponService.getCouponByCode(code);
+        return coupon != null ? ResponseEntity.ok(coupon) : ResponseEntity.notFound().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    
+    public ResponseEntity<Coupon> createCoupon(@RequestBody Coupon coupon, HttpServletRequest request) {
+        String username = getUsernameFromToken(request);
+        // You can use the username for logging or auditing if needed
+        return ResponseEntity.ok(couponService.createCoupon(coupon));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Coupon> updateCoupon(@PathVariable Long id, @RequestBody Coupon coupon, HttpServletRequest request) {
+        String username = getUsernameFromToken(request);
+        // You can use the username for logging or auditing if needed
+        Coupon updated = couponService.updateCoupon(id, coupon);
+        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCoupon(@PathVariable Long id, HttpServletRequest request) {
+        String username = getUsernameFromToken(request);
+        // You can use the username for logging or auditing if needed
+        couponService.deleteCoupon(id);
+        return ResponseEntity.noContent().build();
+    }
+}

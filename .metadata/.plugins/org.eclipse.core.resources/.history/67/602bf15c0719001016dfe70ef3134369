@@ -1,0 +1,68 @@
+package com.example.controller;
+
+import com.example.dto.WishlistRequest;
+import com.example.entity.WishlistItem;
+import com.example.service.WishlistService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/wishlist")
+@CrossOrigin(origins = "*")
+public class WishlistController {
+
+    @Autowired
+    private WishlistService wishlistService;
+
+ // Extract username from JWT token and add product to wishlist
+    @PostMapping("/add")
+    public ResponseEntity<?> addToWishlist(@RequestBody WishlistRequest request) {
+        // Extract the username from the JWT token
+        String username = ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        WishlistItem item = wishlistService.addToWishlist(username, request.getProductId());
+        if (item == null) {
+            return ResponseEntity.badRequest().body("User or Product not found");
+        }
+        return ResponseEntity.ok(item);
+    }
+
+    // Extract username from JWT token and get wishlist items
+    @GetMapping("/items")
+    public ResponseEntity<List<WishlistItem>> getWishlistItems() {
+        String username = ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        List<WishlistItem> items = wishlistService.getWishlistItems(username);
+        return ResponseEntity.ok(items);
+    }
+
+    // Extract username from JWT token and remove item from wishlist
+    @DeleteMapping("/remove")
+    @Transactional
+    public ResponseEntity<String> removeFromWishlist(@RequestBody WishlistRequest request) {
+        String username = ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        boolean removed = wishlistService.removeFromWishlist(username, request.getProductId());
+        if (removed) {
+            return ResponseEntity.ok("Item removed from wishlist");
+        } else {
+            return ResponseEntity.badRequest().body("User or Product not found");
+        }
+    }
+
+    // Extract username from JWT token and clear the wishlist
+    @DeleteMapping("/clear")
+    public ResponseEntity<String> clearWishlist() {
+        String username = ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        boolean cleared = wishlistService.clearWishlist(username);
+        if (cleared) {
+            return ResponseEntity.ok("Wishlist cleared");
+        } else {
+            return ResponseEntity.badRequest().body("User not found");
+        }
+    }
+}

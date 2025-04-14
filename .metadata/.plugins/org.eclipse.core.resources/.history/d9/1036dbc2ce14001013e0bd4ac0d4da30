@@ -1,0 +1,11 @@
+// SelectedItemsRequest.java
+package com.example.dto;
+
+import java.util.List;
+
+public class SelectedItemsRequest {
+    private String username;
+    private List<Long> selectedProductIds;
+
+    // Getters and Setters
+}

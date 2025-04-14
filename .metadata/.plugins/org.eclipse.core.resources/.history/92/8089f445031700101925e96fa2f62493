@@ -1,0 +1,85 @@
+package com.example.controller;
+
+import com.example.dto.OrderResponseDTO;
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.User;
+import com.example.repository.UserRepository;
+import com.example.service.OrderService;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("api/orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // 1. Request item cancellation (only if order status is RECEIVED)
+    @PostMapping("/cancel/item/{itemId}")
+    public ResponseEntity<String> requestItemCancellation(@PathVariable Long itemId,
+                                                          @ModelAttribute RequestWithRemarksDTO request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.requestCancellation(itemId, request, username);
+    }
+
+    // 2. Get all orders for logged-in user
+    @GetMapping("/my-orders")
+    public ResponseEntity<?> getAllOrdersForUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username);
+        Long userId = user.getId();
+        return orderService.getOrdersForUser(userId);
+    }
+
+
+    // 3. Admin can mark order as shipped
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/admin/ship/{orderId}")
+    public ResponseEntity<?> shipOrder(@PathVariable Long orderId) {
+        boolean success = orderService.markOrderAsShipped(orderId);
+        return success ? ResponseEntity.ok("Order marked as shipped") :
+                ResponseEntity.badRequest().body("Cannot update order");
+    }
+
+    // 4. Admin approves cancellation
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/approve/{recordId}")
+    public ResponseEntity<String> approveCancellation(@PathVariable Long recordId) {
+        String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.approveCancellation(recordId, adminName);
+    }
+
+    // 5. Admin rejects cancellation
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/reject/{recordId}")
+    public ResponseEntity<String> rejectCancellation(@PathVariable Long recordId) {
+        String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.rejectCancellation(recordId, adminName);
+    }
+    
+
+    // ✅ 6. User marks order as received
+    @PutMapping("/mark/{orderId}")
+    public boolean markOrderAsReceived(@PathVariable Long orderId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return orderService.markOrderAsReceived(orderId, username);
+    }
+ // 7. Admin can view all orders
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/all-orders")
+    public ResponseEntity<List<OrderResponseDTO>> getAllOrdersForAdmin() {
+        return orderService.getAllOrders();
+    }
+
+
+}

@@ -1,0 +1,58 @@
+package com.example.service;
+
+import com.example.entity.WishlistItem;
+import com.example.entity.User;
+import com.example.entity.Product;
+
+import com.example.repository.UserRepository;
+import com.example.repository.WishlistRepository;
+import com.example.repository.ProductRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistRepository wishlistItemRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    public WishlistItem addProductToWishlist(Long userId, Long productId) {
+        User user = userRepository.findById(userId);
+               
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        WishlistItem wishlistItem = new WishlistItem();
+        wishlistItem.setUser(user);
+        wishlistItem.setProduct(product);
+
+        return wishlistItemRepository.save(wishlistItem);
+    }
+
+    public String removeProductFromWishlist(Long userId, Long productId) {
+        User user = userRepository.findById(userId);
+              
+        Product product = productRepository.findById(productId);
+                
+
+        WishlistItem wishlistItem = wishlistItemRepository.findByUserAndProduct(user, product);
+                
+
+        wishlistItemRepository.delete(wishlistItem);
+        return "Product removed from wishlist";
+    }
+
+    public List<WishlistItem> getWishlistByUserId(Long userId) {
+        User user = userRepository.findById(userId);
+                
+        return wishlistItemRepository.findByUser(user);
+    }
+}

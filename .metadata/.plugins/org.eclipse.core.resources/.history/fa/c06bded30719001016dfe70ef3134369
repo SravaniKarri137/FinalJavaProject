@@ -1,0 +1,112 @@
+package com.example.service;
+
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.entity.WishlistItem;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+import com.example.repository.WishlistRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistRepository wishlistRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    // Method to add product to wishlist
+    public WishlistItem addToWishlist(String username, Long productId) {
+        // Fetch the user by username
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return null;  // User not found
+        }
+
+        User user = userOpt.get();
+
+        // Fetch the product by ID
+        Optional<Product> productOpt = productRepository.findById(productId);
+        if (productOpt.isEmpty()) {
+            return null;  // Product not found
+        }
+
+        Product product = productOpt.get();
+
+        // Create a new WishlistItem
+        WishlistItem wishlistItem = new WishlistItem();
+        wishlistItem.setUser(user);
+        wishlistItem.setProduct(product);
+
+        // Save the wishlist item in the database
+        return wishlistRepository.save(wishlistItem);
+    }
+
+    // Method to retrieve wishlist items for a user
+    public List<WishlistItem> getWishlistItems(String username) {
+        // Fetch the user by username
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return List.of();  // Return an empty list if the user is not found
+        }
+
+        User user = userOpt.get();
+        
+        // Fetch and return all wishlist items for the user
+        return wishlistRepository.findByUser(user);
+    }
+
+    // Method to remove a product from wishlist
+    public boolean removeFromWishlist(String username, Long productId) {
+        // Fetch the user by username
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return false;  // User not found
+        }
+
+        User user = userOpt.get();
+
+        // Fetch the product by ID
+        Optional<Product> productOpt = productRepository.findById(productId);
+        if (productOpt.isEmpty()) {
+            return false;  // Product not found
+        }
+
+        Product product = productOpt.get();
+
+        // Check if the product is in the user's wishlist
+        Optional<WishlistItem> wishlistItemOpt = wishlistRepository.findByUserAndProduct(user, product);
+        if (wishlistItemOpt.isEmpty()) {
+            return false;  // Item not found in wishlist
+        }
+
+        // Remove the wishlist item
+        wishlistRepository.delete(wishlistItemOpt.get());
+        return true;
+    }
+
+    // Method to clear the entire wishlist for a user
+    public boolean clearWishlist(String username) {
+        // Fetch the user by username
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return false;  // User not found
+        }
+
+        User user = userOpt.get();
+
+        // Fetch and remove all wishlist items for the user
+        List<WishlistItem> wishlistItems = wishlistRepository.findByUser(user);
+        wishlistRepository.deleteAll(wishlistItems);
+        return true;
+    }
+}

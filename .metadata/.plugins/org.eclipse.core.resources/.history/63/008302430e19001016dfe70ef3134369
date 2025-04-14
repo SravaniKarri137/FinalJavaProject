@@ -1,0 +1,81 @@
+package com.example.service;
+
+import com.example.entity.WishlistItem;
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.repository.WishlistRepository;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistRepository wishlistRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    // Add item to the wishlist
+    public ResponseEntity<?> addToWishlist(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+
+        if (user == null || product == null) {
+            return ResponseEntity.badRequest().body("User or Product not found");
+        }
+
+        // Check if the item already exists in the wishlist
+        WishlistItem existing = wishlistRepo.findByUserAndProduct(user, product);
+        if (existing != null) {
+            return ResponseEntity.ok("Item already in wishlist");  // Return message if item exists
+        }
+
+        // Create new WishlistItem if not found
+        WishlistItem item = new WishlistItem(null, user, product);
+        WishlistItem savedItem = wishlistRepo.save(item);  // Save the new item
+
+        // Return success response with the added item
+        return ResponseEntity.ok(savedItem);  // Return added item
+    }
+
+
+    // Get wishlist items for a user
+    public List<WishlistItem> getWishlistItems(String username) {
+        User user = userRepo.findByUsername(username);
+        if (user == null) return List.of(); // Return an empty list if user doesn't exist
+        return wishlistRepo.findByUser(user); // Get the wishlist items for the user
+    }
+
+    // Remove item from the wishlist
+    public boolean removeFromWishlist(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+
+        if (user != null && product != null) {
+            wishlistRepo.deleteByUserAndProduct(user, product); // Delete item from wishlist
+            return true;
+        }
+        return false; // Return false if either user or product doesn't exist
+    }
+
+    // Clear the wishlist
+    @Transactional
+    public boolean clearWishlist(String username) {
+        User user = userRepo.findByUsername(username);
+        if (user != null) {
+            wishlistRepo.deleteByUser(user); // Delete all items for the user
+            return true;
+        }
+        return false; // Return false if user doesn't exist
+    }
+}

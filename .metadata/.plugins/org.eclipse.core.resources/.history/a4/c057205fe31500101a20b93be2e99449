@@ -1,0 +1,64 @@
+package com.example.controller;
+
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.Order;
+import com.example.service.OrderService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    // Cancel Request with Remarks and optional Images
+    @PostMapping("/cancel/request/{orderId}")
+    public ResponseEntity<String> requestCancellation(
+            @PathVariable Long orderId,
+            @ModelAttribute RequestWithRemarksDTO request) {
+
+        if (request.getRemarks() == null || request.getRemarks().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Remarks are required for cancellation.");
+        }
+
+        return orderService.requestCancellation(orderId, request);
+    }
+
+    // Admin approves cancellation
+    @PostMapping("/cancel/approve/{orderId}")
+    public ResponseEntity<String> approveCancellation(@PathVariable Long orderId) {
+        return orderService.approveCancellation(orderId);
+    }
+
+    // Return Request with Remarks and optional Images
+    @PostMapping("/return/request/{orderId}")
+    public ResponseEntity<String> requestReturn(
+            @PathVariable Long orderId,
+            @ModelAttribute RequestWithRemarksDTO request) {
+
+        if (request.getRemarks() == null || request.getRemarks().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Remarks are required for return.");
+        }
+
+        return orderService.requestReturn(orderId, request);
+    }
+
+    // Get all orders of a specific user
+    @GetMapping("/user/{userId}")
+    public List<Order> getOrdersByUserId(@PathVariable Long userId) {
+        return orderService.getOrdersByUserId(userId);
+    }
+
+    // Admin: Get all orders
+    @GetMapping("/all")
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+}

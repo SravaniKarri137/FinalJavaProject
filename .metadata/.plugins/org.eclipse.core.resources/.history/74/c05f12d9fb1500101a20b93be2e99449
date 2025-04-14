@@ -1,0 +1,24 @@
+package com.example.dto;
+
+import org.springframework.web.multipart.MultipartFile;
+
+public class RequestWithRemarksDTO {
+    private String remarks;
+    private MultipartFile[] images; // Optional
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
+    }
+
+    public MultipartFile[] getImages() {
+        return images;
+    }
+
+    public void setImages(MultipartFile[] images) {
+        this.images = images;
+    }
+}

@@ -1,0 +1,5 @@
+package com.example.repository;
+
+public interface WishlistRepository extends CartRepository {
+    // Inherits everything from CartRepository with isWishlist = true filtering in service
+}

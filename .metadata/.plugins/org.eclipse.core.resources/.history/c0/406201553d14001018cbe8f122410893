@@ -1,0 +1,16 @@
+package com.example.repository;
+
+import com.example.entity.CartItem;
+import com.example.entity.User;
+import com.example.entity.Product;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface CartRepository extends JpaRepository<CartItem, Long> {
+    List<CartItem> findByUser(User user);
+    List<CartItem> findByUserAndIsWishlist(User user, boolean isWishlist);
+    CartItem findByUserAndProductAndIsWishlist(User user, Product product, boolean isWishlist);
+    void deleteByUserAndProductAndIsWishlist(User user, Product product, boolean isWishlist);
+    void deleteByUser(User user);
+}

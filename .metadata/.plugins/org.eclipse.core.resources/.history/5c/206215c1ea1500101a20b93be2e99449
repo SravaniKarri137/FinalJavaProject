@@ -1,0 +1,20 @@
+package com.example.dto;
+
+import java.util.List;
+
+public class SelectedItemsRequest {
+
+    private List<Long> selectedProductIds;
+
+    // Getters and setters
+
+ 
+
+    public List<Long> getSelectedProductIds() {
+        return selectedProductIds;
+    }
+
+    public void setSelectedProductIds(List<Long> selectedProductIds) {
+        this.selectedProductIds = selectedProductIds;
+    }
+}

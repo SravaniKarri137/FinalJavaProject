@@ -1,0 +1,57 @@
+package com.example.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.entity.CartItem;
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.repository.CartRepository;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+
+@Service
+public class WishlistService {
+
+    @Autowired
+    private CartRepository cartRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    public CartItem addToWishlist(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+        if (user == null || product == null) return null;
+
+        // Quantity for wishlist can be defaulted to 1
+        CartItem item = new CartItem(null, user, product, 1);
+        return cartRepo.save(item);
+    }
+
+    public List<CartItem> getWishlistItems(String username) {
+        User user = userRepo.findByUsername(username);
+        return cartRepo.findByUser(user);
+    }
+
+    public void removeItem(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+        if (user != null && product != null) {
+            cartRepo.deleteByUserAndProduct(user, product);
+        }
+    }
+
+    public void clearWishlist(String username) {
+        User user = userRepo.findByUsername(username);
+        if (user != null) {
+            List<CartItem> items = cartRepo.findByUser(user);
+            cartRepo.deleteAll(items);
+        }
+    }
+}

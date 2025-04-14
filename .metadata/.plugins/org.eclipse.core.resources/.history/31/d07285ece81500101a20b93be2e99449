@@ -1,0 +1,70 @@
+package com.example.service;
+
+import com.example.entity.Coupon;
+import com.example.repository.CouponRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+@Service
+public class CouponService {
+
+    @Autowired
+    private CouponRepository couponRepository;
+
+    public List<Coupon> getAllCoupons() {
+        return couponRepository.findAll();
+    }
+
+    public Coupon getCouponById(Long id) {
+        return couponRepository.findById(id).orElse(null);
+    }
+
+    public Coupon getCouponByCode(String code) {
+        return couponRepository.findByCodeIgnoreCase(code);
+    }
+
+    public Coupon createCoupon(Coupon coupon) {
+        coupon.setTimesUsed(0); // Initialize usage
+        return couponRepository.save(coupon);
+    }
+
+    public Coupon updateCoupon(Long id, Coupon updatedCoupon) {
+        Optional<Coupon> optionalCoupon = couponRepository.findById(id);
+        if (optionalCoupon.isPresent()) {
+            Coupon coupon = optionalCoupon.get();
+            coupon.setCode(updatedCoupon.getCode());
+            coupon.setDiscountPercentage(updatedCoupon.getDiscountPercentage());
+            coupon.setActive(updatedCoupon.isActive());
+            coupon.setMinPurchaseAmount(updatedCoupon.getMinPurchaseAmount());
+            coupon.setExpiryDate(updatedCoupon.getExpiryDate());
+            coupon.setUsageLimit(updatedCoupon.getUsageLimit());
+            return couponRepository.save(coupon);
+        }
+        return null;
+    }
+
+    public void deleteCoupon(Long id) {
+        couponRepository.deleteById(id);
+    }
+
+    // Method to track coupon usage per user
+    public boolean applyCoupon(Coupon coupon, Long userId) {
+        if (!coupon.isActive() || coupon.getExpiryDate().isBefore(LocalDateTime.now())) {
+            return false; // Coupon is not active or expired
+        }
+
+        // Check if the user has exceeded the usage limit
+        Integer userUsageCount = coupon.getUserUsageMap().getOrDefault(userId, 0);
+        if (userUsageCount >= coupon.getUsageLimit()) {
+            return false; // User has reached the usage limit
+        }
+
+        // Increment user usage
+        coupon.getUserUsageMap().put(userId, userUsageCount + 1);
+        couponRepository.save(coupon);
+        return true;
+    }
+}

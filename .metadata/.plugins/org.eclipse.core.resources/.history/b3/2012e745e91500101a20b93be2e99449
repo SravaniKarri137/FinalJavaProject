@@ -1,0 +1,117 @@
+package com.example.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.dto.CartRequest;
+import com.example.dto.OrderRequest;
+import com.example.dto.OrderResponse;
+import com.example.dto.SelectedItemsRequest;
+import com.example.entity.CartItem;
+import com.example.security.JwtUtil;
+import com.example.service.CartService;
+
+@RestController
+@RequestMapping("/api/cart")
+@CrossOrigin(origins = "*")
+public class CartController {
+
+    @Autowired
+    private CartService cartService;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    // Extract JWT token from Authorization header
+    private String getUsernameFromToken(String token) {
+        return jwtUtil.extractUsername(token);
+    }
+
+    @PostMapping("/add")
+    public ResponseEntity<CartItem> addToCart(@RequestHeader("Authorization") String authorizationHeader, @RequestBody CartRequest request) {
+        String token = authorizationHeader.substring(7); // Removing "Bearer " prefix
+        String username = getUsernameFromToken(token);
+        
+        CartItem item = cartService.addToCart(username, request.getProductId(), request.getQuantity());
+        if (item == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        return ResponseEntity.ok(item);
+    }
+
+    @GetMapping("/get")
+    public List<CartItem> getCartItems(@RequestHeader("Authorization") String authorizationHeader) {
+        return cartService.getCartItems(authorizationHeader);
+    }
+
+    @PutMapping("/update")
+    @Transactional
+    public ResponseEntity<List<CartItem>> updateCartItem(@RequestHeader("Authorization") String authorizationHeader, @RequestBody CartRequest request) {
+        String token = authorizationHeader.substring(7); // Removing "Bearer " prefix
+        String username = getUsernameFromToken(token);
+        
+        cartService.updateCartItemQuantity(username, request.getProductId(), request.getQuantity());
+        return ResponseEntity.ok(cartService.getCartItems(username));
+    }
+
+    @DeleteMapping("/remove")
+    @Transactional
+    public ResponseEntity<String> removeItem(@RequestHeader("Authorization") String authorizationHeader, @RequestBody CartRequest request) {
+        String token = authorizationHeader.substring(7); // Removing "Bearer " prefix
+        String username = getUsernameFromToken(token);
+        
+        cartService.removeItem(username, request.getProductId());
+        return ResponseEntity.ok("Item removed from cart");
+    }
+
+    @DeleteMapping("/clear")
+    @Transactional
+    public ResponseEntity<String> clearCart(@RequestHeader("Authorization") String authorizationHeader, @RequestBody CartRequest request) {
+        String token = authorizationHeader.substring(7); // Removing "Bearer " prefix
+        String username = getUsernameFromToken(token);
+        
+        cartService.clearCart(username);
+        return ResponseEntity.ok("Cart cleared successfully");
+    }
+
+    @PostMapping("/count")
+    public ResponseEntity<Integer> getCartCount(@RequestHeader("Authorization") String authorizationHeader, @RequestBody CartRequest request) {
+        String token = authorizationHeader.substring(7); // Removing "Bearer " prefix
+        String username = getUsernameFromToken(token);
+        
+        return ResponseEntity.ok(cartService.countItems(username));
+    }
+
+    @PutMapping("/select")
+    @Transactional
+    public ResponseEntity<String> updateSelectedItems(@RequestHeader("Authorization") String authorizationHeader, @RequestBody SelectedItemsRequest request) {
+        String token = authorizationHeader.substring(7); // Removing "Bearer " prefix
+        String username = getUsernameFromToken(token);
+        
+        cartService.updateSelection(username, request.getSelectedProductIds());
+        return ResponseEntity.ok("Selection updated");
+    }
+
+    @GetMapping("/total/{username}")
+    public ResponseEntity<Double> getTotalForSelectedItems(@PathVariable String username) {
+        double total = cartService.calculateTotalOfSelectedItems(username);
+        return ResponseEntity.ok(total);
+    }
+
+    @PostMapping("/checkout")
+    @Transactional
+    public ResponseEntity<OrderResponse> checkout(@RequestHeader("Authorization") String authorizationHeader, @RequestBody OrderRequest request) {
+        String token = authorizationHeader.substring(7); // Removing "Bearer " prefix
+        String username = getUsernameFromToken(token);
+        
+        OrderResponse response = cartService.checkout(request);
+        if (response == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(response);
+    }
+}

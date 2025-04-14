@@ -1,0 +1,2 @@
+INDEX VERSION 1.134+C:\Users\P12C13D\OneDrive - Ceridian HCM Inc\Documents\Desktop\Final\Backend\e-commerceprj-sravs\E-CommerceSportswearBackend\.metadata\.plugins\org.eclipse.jdt.core
+1865797976.index

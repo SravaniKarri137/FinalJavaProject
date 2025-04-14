@@ -1,0 +1,31 @@
+package com.example.dto;
+
+
+
+import lombok.Data;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+public class OrderResponseDTO {
+    private Long id;
+    private LocalDateTime orderDate;
+    private Double totalAmount;
+    private Double discountAmount;
+    private Double finalPrice;
+    private String status;
+    private String couponCode;
+    private String remarks;
+    private String address;
+    private List<OrderItemDTO> items;
+
+    @Data
+    public static class OrderItemDTO {
+        private Long id;
+        private String productName;
+        private Long ProductId;
+        private int quantity;
+        private double price;
+    }
+}

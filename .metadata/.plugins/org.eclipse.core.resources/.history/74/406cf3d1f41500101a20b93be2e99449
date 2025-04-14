@@ -1,0 +1,188 @@
+package com.example.service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.dto.OrderRequest;
+import com.example.dto.OrderResponse;
+import com.example.entity.*;
+import com.example.repository.*;
+import com.example.security.JwtUtil;
+
+@Service
+public class CartService {
+
+    @Autowired
+    private CartRepository cartRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    @Autowired
+    private OrderRepository orderRepo;
+
+    @Autowired
+    private AddressRepository addressRepo;
+
+    @Autowired
+    private CouponRepository couponRepo;
+
+    @Autowired
+    private TransactionRepository transactionRepo;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    private User getUserFromToken(String token) {
+        String username = jwtUtil.extractUsername(token);
+        return userRepo.findByUsername(username);
+    }
+
+    public CartItem addToCart(String token, Long productId, int quantity) {
+        User user = getUserFromToken(token);
+        Product product = productRepo.findById(productId).orElse(null);
+        if (user == null || product == null) return null;
+        CartItem existing = cartRepo.findByUserAndProduct(user, product);
+        if (existing != null) {
+            existing.setQuantity(existing.getQuantity() + quantity);
+            return cartRepo.save(existing);
+        }
+        return cartRepo.save(new CartItem(null, user, product, quantity, false));
+    }
+
+    public List<CartItem> getCartItems(String token) {
+        User user = getUserFromToken(token);
+        return cartRepo.findByUser(user);
+    }
+
+    public void updateCartItemQuantity(String token, Long productId, int quantity) {
+        User user = getUserFromToken(token);
+        Product product = productRepo.findById(productId).orElse(null);
+        if (user != null && product != null) {
+            CartItem item = cartRepo.findByUserAndProduct(user, product);
+            if (item != null) {
+                item.setQuantity(quantity);
+                cartRepo.save(item);
+            }
+        }
+    }
+
+    public int countItems(String token) {
+        User user = getUserFromToken(token);
+        return cartRepo.countByUser(user);
+    }
+
+    public void removeItem(String token, Long productId) {
+        User user = getUserFromToken(token);
+        Product product = productRepo.findById(productId).orElse(null);
+        if (user != null && product != null) {
+            cartRepo.deleteByUserAndProduct(user, product);
+        }
+    }
+
+    public void clearCart(String token) {
+        User user = getUserFromToken(token);
+        if (user != null) {
+            List<CartItem> items = cartRepo.findByUser(user);
+            cartRepo.deleteAll(items);
+        }
+    }
+
+    public void updateSelection(String token, List<Long> selectedProductIds) {
+        User user = getUserFromToken(token);
+        if (user != null) {
+            List<CartItem> items = cartRepo.findByUser(user);
+            for (CartItem item : items) {
+                item.setSelected(selectedProductIds.contains(item.getProduct().getId()));
+            }
+            cartRepo.saveAll(items);
+        }
+    }
+
+    public double calculateTotalOfSelectedItems(String token) {
+        User user = getUserFromToken(token);
+        if (user == null) return 0.0;
+        List<CartItem> selectedItems = cartRepo.findByUserAndSelectedTrue(user);
+        return selectedItems.stream()
+                .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity())
+                .sum();
+    }
+
+    @Transactional
+    public OrderResponse checkout(String token, OrderRequest request) {
+        User user = getUserFromToken(token);
+        if (user == null) return null;
+
+        List<Long> selectedProductIds = request.getSelectedProductIds();
+        String couponCode = request.getCouponCode();
+        String addressText = request.getAddress();
+
+        List<CartItem> selectedItems = cartRepo.findByUserUsernameAndProductIdInAndSelectedTrue(user.getUsername(), selectedProductIds);
+        if (selectedItems.isEmpty()) {
+            return null;
+        }
+
+        double total = selectedItems.stream()
+                .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity())
+                .sum();
+
+        double discount = 0.0;
+        if (couponCode != null && !couponCode.isEmpty()) {
+            Coupon coupon = couponRepo.findByCodeIgnoreCase(couponCode);
+            if (coupon != null && coupon.isActive()) {
+                discount = total * (coupon.getDiscountPercentage() / 100.0);
+            }
+        }
+        double finalPrice = total - discount;
+
+        Order order = new Order();
+        order.setUsername(user.getUsername());
+        order.setOrderDate(LocalDateTime.now());
+        order.setTotalAmount(total);
+        order.setDiscountAmount(discount);
+        order.setFinalPrice(finalPrice);
+        order.setStatus("PLACED");
+        order.setCouponCode(couponCode);
+
+        if (addressText != null && !addressText.isEmpty()) {
+            Address newAddress = new Address();
+            newAddress.setUsername(user.getUsername());
+            newAddress.setFullAddress(addressText);
+            addressRepo.save(newAddress);
+            order.setShippingAddress(newAddress);
+        }
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (CartItem cartItem : selectedItems) {
+            OrderItem orderItem = new OrderItem();
+            orderItem.setProductId(cartItem.getProduct().getId());
+            orderItem.setProductName(cartItem.getProduct().getName());
+            orderItem.setQuantity(cartItem.getQuantity());
+            orderItem.setPrice(cartItem.getProduct().getPrice());
+            orderItem.setOrder(order);
+            orderItems.add(orderItem);
+        }
+        order.setItems(orderItems);
+
+        orderRepo.save(order);
+
+        TransactionDetail transaction = new TransactionDetail();
+        transaction.setOrder(order);
+        transaction.setTransactionType(request.getTransactionType() != null ? request.getTransactionType() : "COD");
+        transaction.setTransactionDate(LocalDateTime.now());
+        transaction.setStatus("SUCCESS");
+        transactionRepo.save(transaction);
+
+        cartRepo.deleteAll(selectedItems);
+
+        return new OrderResponse(order.getId(), order.getTotalAmount(), order.getDiscountAmount(), order.getFinalPrice(), order.getStatus(), order.getOrderDate());
+    }
+}

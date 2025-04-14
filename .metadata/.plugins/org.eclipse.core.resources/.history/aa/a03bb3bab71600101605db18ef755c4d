@@ -1,0 +1,24 @@
+package com.example.dto;
+
+import java.util.List;
+
+public class SelectedItemsRequest {
+    private List<Long> selectedItemIds;
+    private boolean selectAll;
+
+    public List<Long> getSelectedItemIds() {
+        return selectedItemIds;
+    }
+
+    public void setSelectedItemIds(List<Long> selectedItemIds) {
+        this.selectedItemIds = selectedItemIds;
+    }
+
+    public boolean isSelectAll() {
+        return selectAll;
+    }
+
+    public void setSelectAll(boolean selectAll) {
+        this.selectAll = selectAll;
+    }
+}

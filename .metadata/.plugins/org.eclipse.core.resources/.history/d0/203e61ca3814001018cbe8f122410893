@@ -1,0 +1,58 @@
+package com.example.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.entity.CartItem;
+import com.example.entity.Product;
+import com.example.entity.User;
+import com.example.repository.WishlistRepository;
+import com.example.repository.ProductRepository;
+import com.example.repository.UserRepository;
+@Service
+public class WishlistService {
+
+    @Autowired
+    private WishlistRepository wishlistRepo;
+
+    @Autowired
+    private ProductRepository productRepo;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    public CartItem addToWishlist(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+        if (user == null || product == null) return null;
+
+        CartItem existing = wishlistRepo.findByUserAndProductAndIsWishlist(user, product, true);
+        if (existing != null) return existing;
+
+        CartItem item = new CartItem(null, user, product, 1, true); // isWishlist = true
+        return wishlistRepo.save(item);
+    }
+
+    public List<CartItem> getWishlistItems(String username) {
+        User user = userRepo.findByUsername(username);
+        return wishlistRepo.findByUserAndIsWishlist(user, true);
+    }
+
+    public void removeItem(String username, Long productId) {
+        User user = userRepo.findByUsername(username);
+        Product product = productRepo.findById(productId).orElse(null);
+        if (user != null && product != null) {
+            wishlistRepo.deleteByUserAndProductAndIsWishlist(user, product, true);
+        }
+    }
+
+    public void clearWishlist(String username) {
+        User user = userRepo.findByUsername(username);
+        if (user != null) {
+            List<CartItem> wishlistItems = wishlistRepo.findByUserAndIsWishlist(user, true);
+            wishlistRepo.deleteAll(wishlistItems);
+        }
+    }
+}

@@ -1,0 +1,48 @@
+package com.example.controller;
+
+import com.example.entity.Order;
+import com.example.service.OrderService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    // Place a new order for a specific user
+    @PostMapping("/place/{userId}")
+    public ResponseEntity<String> placeOrder(@PathVariable Long userId, @RequestBody Order order) {
+        return orderService.placeOrder(userId, order);
+    }
+
+    // Request cancellation of an order
+    @PostMapping("/cancel/request/{orderId}")
+    public ResponseEntity<String> requestCancellation(@PathVariable Long orderId) {
+        return orderService.requestCancellation(orderId);
+    }
+
+    // Admin approves cancellation of an order
+    @PostMapping("/cancel/approve/{orderId}")
+    public ResponseEntity<String> approveCancellation(@PathVariable Long orderId) {
+        return orderService.approveCancellation(orderId);
+    }
+
+    // Get all orders of a specific user
+    @GetMapping("/user/{userId}")
+    public List<Order> getOrdersByUserId(@PathVariable Long userId) {
+        return orderService.getOrdersByUserId(userId);
+    }
+
+    // Admin: Get all orders
+    @GetMapping("/all")
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+}

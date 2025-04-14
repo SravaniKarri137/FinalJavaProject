@@ -1,0 +1,24 @@
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TransactionDetail {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String transactionType;
+
+    private LocalDateTime transactionDate;
+
+    private String status;
+
+    @OneToOne
+    @JoinColumn(name = "order_id")
+    private Order order;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")  // Add this to fix the mapping
+    private User user;
+}

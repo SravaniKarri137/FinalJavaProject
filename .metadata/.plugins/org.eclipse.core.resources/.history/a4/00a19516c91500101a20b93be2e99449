@@ -1,0 +1,23 @@
+package com.example.dto;
+
+import java.util.List;
+
+public class OrderRequest {
+    private String username;
+    private List<Long> selectedProductIds;
+    private String couponCode;
+
+    // For new address
+    private String address;
+    private String receiverName;
+    private String phoneNumber;
+    private String pincode;
+
+    // For existing address
+    private Long addressId;
+
+    private String transactionType;
+
+    // Getters and Setters...
+}
+

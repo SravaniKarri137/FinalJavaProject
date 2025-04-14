@@ -1,0 +1,49 @@
+package com.example.controller;
+
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.Order;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+@RestController
+@RequestMapping("api/orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    // 👤 USER: Request cancellation
+    @PostMapping("/cancel/{orderId}")
+    public ResponseEntity<String> requestCancellation(
+            @PathVariable Long orderId,
+            @ModelAttribute RequestWithRemarksDTO request) {
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (request.getRemarks() == null || request.getRemarks().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Remarks are required for cancellation.");
+        }
+
+        return orderService.requestCancellation(orderId, request, username);
+    }
+
+    // 🛡️ ADMIN: Approve cancellation
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/approve/{orderId}")
+    public ResponseEntity<String> approveCancellation(@PathVariable Long orderId) {
+        return orderService.approveCancellation(orderId);
+    }
+
+    // 🛡️ ADMIN: Reject cancellation (optional)
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/reject/{orderId}")
+    public ResponseEntity<String> rejectCancellation(@PathVariable Long orderId) {
+        return orderService.rejectCancellation(orderId);
+    }
+}

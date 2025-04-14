@@ -1,0 +1,22 @@
+package com.example.repository;
+
+import com.example.entity.Order;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    // ❌ This is incorrect: OrderRepository should not be querying User entity directly.
+    // Optional<User> findByUsername(String username); → REMOVE
+
+    // ✅ Correct method to find orders by username via the associated User entity
+    List<Order> findByUserUsername(String username);
+
+    // ✅ Custom query to fetch order along with user info
+    @Query("SELECT o FROM Order o JOIN FETCH o.user WHERE o.id = :orderId")
+    Optional<Order> findByIdWithUser(@Param("orderId") Long orderId);
+}

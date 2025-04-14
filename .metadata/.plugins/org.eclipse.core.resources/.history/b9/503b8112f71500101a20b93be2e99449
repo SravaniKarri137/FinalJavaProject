@@ -1,0 +1,73 @@
+package com.example.controller;
+
+import com.example.dto.RequestWithRemarksDTO;
+import com.example.entity.Order;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("orders")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    // Cancel Request with Remarks and optional Images
+    @PostMapping("/cancel/{orderId}")
+    public ResponseEntity<String> requestCancellation(
+            @PathVariable Long orderId,
+            @ModelAttribute RequestWithRemarksDTO request) {
+
+    	String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+
+        if (request.getRemarks() == null || request.getRemarks().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Remarks are required for cancellation.");
+        }
+
+        return orderService.requestCancellation(orderId, request, username);
+    }
+
+    // Admin approves cancellation
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/cancel/approve/{orderId}")
+    public ResponseEntity<String> approveCancellation(@PathVariable Long orderId) {
+        return orderService.approveCancellation(orderId);
+    }
+
+    // Return Request with Remarks and optional Images
+    @PostMapping("/return/request/{orderId}")
+    public ResponseEntity<String> requestReturn(
+            @PathVariable Long orderId,
+            @ModelAttribute RequestWithRemarksDTO request) {
+
+        String username = ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+
+        if (request.getRemarks() == null || request.getRemarks().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Remarks are required for return.");
+        }
+
+        return orderService.requestReturn(orderId, request, username);
+    }
+
+    // Get all orders of the logged-in user
+    @GetMapping("/user")
+    public List<Order> getOrdersByUser() {
+        String username = ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        return orderService.getOrdersByUser(username);
+    }
+
+    // Admin: Get all orders
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+}

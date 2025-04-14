@@ -1,0 +1,40 @@
+package com.example.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.entity.TransactionDetail;
+import com.example.repository.TransactionRepository;
+
+@RestController
+@RequestMapping("/api/transactions")
+@CrossOrigin(origins = "*")
+public class TransactionController {
+
+    @Autowired
+    private TransactionRepository transactionRepo;
+
+    // Endpoint for a user to check their own transactions.
+    @GetMapping("/user/{username}")
+    public ResponseEntity<List<TransactionDetail>> getUserTransactions(@PathVariable String username) {
+        List<TransactionDetail> userTransactions = transactionRepo.findByOrderUsername(username);
+        return ResponseEntity.ok(userTransactions);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public ResponseEntity<List<TransactionDetail>> getAllTransactions(
+            @RequestParam(required = false) String transactionType) {
+        List<TransactionDetail> transactions;
+        if (transactionType != null && !transactionType.isEmpty()) {
+            transactions = transactionRepo.findByTransactionTypeIgnoreCase(transactionType);
+        } else {
+            transactions = transactionRepo.findAll();
+        }
+        return ResponseEntity.ok(transactions);
+    }
+}

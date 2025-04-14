@@ -1,0 +1,15 @@
+package com.example.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.example.entity.TransactionDetail;
+
+public interface TransactionRepository extends JpaRepository<TransactionDetail, Long> {
+
+    // Find all transactions for a particular user (by looking up the username in the associated order)
+    List<TransactionDetail> findByOrderUsername(String username);
+
+    // Find transactions by a given transaction type (category)
+    List<TransactionDetail> findByTransactionTypeIgnoreCase(String transactionType);
+}

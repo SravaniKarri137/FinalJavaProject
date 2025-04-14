@@ -1,0 +1,42 @@
+package com.example.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.entity.TransactionDetail;
+import com.example.repository.TransactionRepository;
+
+@Service
+public class TransactionService {
+
+    @Autowired
+    private TransactionRepository transactionRepo;
+
+    /**
+     * Retrieve all transactions associated with the given username.
+     * It looks up transactions from orders linked to that username.
+     *
+     * @param username the username whose transactions to fetch
+     * @return list of TransactionDetail objects
+     */
+    public List<TransactionDetail> getTransactionsByUsername(String username) {
+        return transactionRepo.findByOrderUsername(username);
+    }
+
+    /**
+     * Retrieve all transactions.
+     * If a transaction type is provided (e.g. "COD", "Online Payment"), filters the transactions by that type.
+     *
+     * @param transactionType the type (category) of transactions to filter by (optional)
+     * @return list of TransactionDetail objects
+     */
+    public List<TransactionDetail> getAllTransactions(String transactionType) {
+        if (transactionType != null && !transactionType.isEmpty()) {
+            return transactionRepo.findByTransactionTypeIgnoreCase(transactionType);
+        } else {
+            return transactionRepo.findAll();
+        }
+    }
+}

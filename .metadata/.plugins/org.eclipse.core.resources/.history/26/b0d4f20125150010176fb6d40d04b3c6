@@ -1,0 +1,29 @@
+package com.example.controller;
+
+import com.example.dto.TransactionRequest;
+import com.example.entity.Transaction;
+import com.example.service.TransactionService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/transactions")
+@CrossOrigin(origins = "*")
+public class TransactionController {
+
+    @Autowired
+    private TransactionService service;
+
+    @PostMapping("/place")
+    public Transaction placeOrder(@RequestBody TransactionRequest request) {
+        return service.placeOrder(request);
+    }
+
+    @GetMapping("/{username}")
+    public List<Transaction> getUserTransactions(@PathVariable String username) {
+        return service.getUserTransactions(username);
+    }
+}

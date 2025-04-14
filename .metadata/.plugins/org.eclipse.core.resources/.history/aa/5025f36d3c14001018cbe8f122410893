@@ -1,0 +1,45 @@
+package com.example.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.dto.WishlistRequest;
+import com.example.entity.CartItem;
+import com.example.service.WishlistService;
+
+@RestController
+@RequestMapping("/api/wishlist")
+@CrossOrigin(origins = "*")
+public class WishlistController {
+
+    @Autowired
+    private WishlistService wishlistService;
+
+    @PostMapping("/add")
+    public CartItem addToWishlist(@RequestBody WishlistRequest request) {
+        return wishlistService.addToWishlist(request.getUsername(), request.getProductId());
+    }
+
+    @GetMapping("/{username}")
+    public List<CartItem> getWishlistItems(@PathVariable String username) {
+        return wishlistService.getWishlistItems(username);
+    }
+
+    @DeleteMapping("/remove")
+    @Transactional
+    public ResponseEntity<String> removeFromWishlist(@RequestBody WishlistRequest request) {
+        wishlistService.removeItem(request.getUsername(), request.getProductId());
+        return ResponseEntity.ok("Item removed from wishlist successfully");
+    }
+
+    @DeleteMapping("/clear")
+    @Transactional
+    public ResponseEntity<String> clearWishlist(@RequestParam String username) {
+        wishlistService.clearWishlist(username);
+        return ResponseEntity.ok("Wishlist cleared successfully");
+    }
+}
