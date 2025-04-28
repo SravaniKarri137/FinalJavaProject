@@ -1,7 +1,7 @@
 
-# 🛒 FinalJavaProject - Online Sportswear E-commerce Platform
+# 🛒 Online Sportswear E-commerce Platform
 
-Welcome to **FinalJavaProject** – an online sportswear e-commerce platform built with **Java (Spring Boot)** for the backend and **React** for the frontend.  
+Welcome to **Sportswear** – an online sportswear e-commerce platform built with **Java (Spring Boot)** for the backend and **React** for the frontend.  
 This project provides users a convenient and immersive experience for purchasing athletic apparel, footwear, and accessories.
 
 ## 🚀 Demo
