@@ -19,8 +19,7 @@ This project provides users a convenient and immersive experience for purchasing
 - 📄 **Product Details & Reviews:** Detailed pages with product info, images, pricing, and customer reviews.
 - 🛒 **Shopping Cart & Checkout:** Seamless cart management, secure checkout, and multiple payment options.
 - 🎁 **Promotions & Discounts:** Promo codes, seasonal sales, and loyalty offers.
-- 📦 **Inventory Management:** Real-time stock updates, automated replenishment, and low stock alerts.
-- 📱 **Social Media Integration:** Connect and promote via Facebook, Instagram, and Twitter.
+
 
 ---
 
@@ -58,43 +57,31 @@ cd FinalJavaProject
 2. Backend Setup (Spring Boot)
 Navigate to the backend folder:
 
-bash
-Copy
-Edit
+
 cd backend
 Configure your application.properties with your database credentials.
 
 Run the application:
 
-bash
-Copy
-Edit
+
 mvn spring-boot:run
 3. Frontend Setup (React)
 Navigate to the frontend folder:
 
-bash
-Copy
-Edit
+
 cd frontend
 Install dependencies:
 
-bash
-Copy
-Edit
+
 npm install
 Start the frontend server:
 
-bash
-Copy
-Edit
+
 npm start
 The frontend will start on http://localhost:3000, and the backend will run on http://localhost:8080.
 
 ✅ To-Do
  Basic Product Catalog
-
- User Authentication
 
  Payment Gateway Integration (Upcoming)
 
